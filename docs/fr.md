@@ -1,67 +1,249 @@
-# Template de démonstration
+# Bosch Smart Home
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+Reliez votre **Bosch Smart Home Controller** (première ou deuxième
+génération) à Gladys, sur votre réseau local, sans aucun cloud : le chauffage
+de chaque pièce (température, consigne, mode), les thermostats de radiateur
+et d'ambiance, les contacts de porte et de fenêtre, les détecteurs de
+mouvement, les détecteurs de fumée, les prises, les interrupteurs, les
+volets, les détecteurs de fuite d'eau, les interrupteurs universels et l'état
+de l'alarme intrusion.
 
-## Ce que vous obtenez
+> **Développée sans le matériel : vos retours sont les bienvenus.** Cette
+> intégration a été construite à partir de l'API locale publique du
+> contrôleur et du travail de la bibliothèque boschshcpy, et testée contre un
+> contrôleur simulé, pas un vrai. Si quelque chose ne fonctionne pas comme
+> décrit, dites-le sur le [forum Gladys](https://community.gladysassistant.com)
+> ou dans les [issues](https://github.com/guim31/gladys-bosch-shc/issues).
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+Cette intégration n'est ni affiliée à Bosch, ni approuvée par Bosch.
 
-## Configuration
+## Ce qu'il vous faut
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+- Gladys Assistant 5.1.0 ou plus récent.
+- Un **Bosch Smart Home Controller** (I ou II), installé avec l'application
+  Bosch Smart Home, sur le même réseau local que Gladys.
+- Son **adresse IP**. L'application l'affiche dans _Paramètres_ →
+  _Système_ → _Smart Home Controller_ ; votre box l'affiche aussi. Donnez une
+  adresse fixe au contrôleur (réservation DHCP dans votre box) :
+  l'intégration le joint à cette adresse.
+- Son **mot de passe système**, choisi à l'installation du contrôleur. Il ne
+  sert qu'une fois, pour l'appairage.
+- Un accès au contrôleur, pour appuyer sur son bouton pendant l'appairage.
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+## Mise en place
 
-## Actions
+Le contrôleur ne parle qu'aux clients qu'il a appairés. L'appairage
+enregistre Gladys comme client du contrôleur, avec un certificat que
+l'intégration génère et garde dans son volume `/data`.
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+1. Dans Gladys, ouvrez **Intégrations** → **Bosch Smart Home** →
+   **Configuration**.
+2. Saisissez l'**Adresse IP du contrôleur** (ex. `192.168.1.20`) et le **Mot
+   de passe système**, puis **enregistrez**.
+3. Allez au contrôleur et **appuyez sur son bouton** (en façade) jusqu'à ce
+   que ses voyants clignotent : le contrôleur est en mode appairage, pour un
+   court moment.
+4. De retour dans Gladys, cliquez aussitôt sur **Appairer**. Après quelques
+   secondes, le résultat s'affiche sous le bouton : _Appairé. N appareil(s)
+   trouvé(s)_.
+5. Ouvrez l'onglet **Découverte** et ajoutez les appareils voulus.
 
-## Scènes
+Une fois l'appairage fait, le mot de passe système est effacé de la
+configuration de Gladys : il ne sert plus. L'appairage apparaît dans
+l'application Bosch (sous le nom _oss_Gladys_Assistant_), où vous pouvez le
+supprimer à tout moment.
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+**Tester la connexion** relit le contrôleur et donne sa version logicielle et
+le nombre d'appareils pris en charge.
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+Les autres réglages :
+
+- **Langue des noms** : la langue des noms de fonctionnalités donnés aux
+  nouveaux appareils et des textes envoyés par l'intégration (français par
+  défaut).
+- **Durée d'un mouvement** : un détecteur de mouvement ne donne que l'heure de
+  chaque détection ; c'est le temps pendant lequel sa fonctionnalité
+  _Mouvement_ reste ensuite active (1 minute par défaut).
+- **Autoriser l'armement depuis Gladys** : désactivé par défaut, voir
+  _Alarme intrusion_ plus bas.
+- **Ne pas vérifier le certificat du contrôleur** : désactivé. Seulement pour
+  un contrôleur dont le certificat a expiré parce qu'il est resté hors ligne
+  des années : la connexion échoue alors sur une erreur de certificat.
+
+## Appareils
+
+Chaque appareil pris en charge du contrôleur devient un appareil Gladys,
+nommé comme dans l'application Bosch. Les états arrivent en temps réel :
+l'intégration garde un abonnement aux événements ouvert sur le contrôleur
+(long polling, comme le recommande Bosch), et relit tout toutes les 15
+minutes par sécurité. Un appareil que le contrôleur déclare indisponible
+affiche le badge _injoignable_.
+
+### Chauffage
+
+Bosch gère le chauffage **par pièce** : pour chaque pièce équipée de
+thermostats de radiateur, le contrôleur a une régulation de pièce, qui
+devient l'appareil _Chauffage <pièce>_ :
+
+| Fonctionnalité         | Ce qu'elle fait                                                                                            |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Température**        | Température de la pièce mesurée par le contrôleur.                                                         |
+| **Consigne**           | Température voulue, de 5 à 30 °C par demi-degré. En mode manuel, elle est conservée.                       |
+| **Mode de chauffage**  | _Arrêt (été)_, _Manuel_ (consigne fixe) ou _Programme_ (le programme hebdomadaire de l'application Bosch). |
+| **Demande de chauffe** | Si un radiateur de la pièce demande de la chaleur.                                                         |
+
+En mode _Programme_, une nouvelle consigne vaut jusqu'à l'étape suivante du
+programme, comme dans l'application Bosch. Quand la pièce est en mode éco,
+une nouvelle consigne quitte le mode éco.
+
+Les **thermostats de radiateur** et les **thermostats d'ambiance** sont aussi
+des appareils : **Température**, **Humidité** (thermostats d'ambiance qui la
+mesurent) et **Batterie faible**.
+
+### Capteurs
+
+| Appareil                 | Fonctionnalités                      |
+| ------------------------ | ------------------------------------ |
+| Contact de porte/fenêtre | **Ouverture**, **Batterie faible**   |
+| Détecteur de mouvement   | **Mouvement**, **Batterie faible**   |
+| Détecteur de fumée       | **Fumée**, **Batterie faible**       |
+| Détecteur de fuite d'eau | **Fuite d'eau**, **Batterie faible** |
+| Interrupteur universel   | **Batterie faible**                  |
+
+**Fumée** est active quand le détecteur lui-même détecte de la fumée. Quand
+c'est un autre détecteur de la maison, tous les détecteurs sonnent, mais
+seul celui de la pièce enfumée affiche **Fumée** : le déclencheur _Détecteur
+de fumée en alarme_ distingue les deux cas.
+
+### Prises, interrupteurs et volets
+
+| Appareil                                                 | Fonctionnalités                                                                     |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Prise connectée, prise compacte                          | **Marche/Arrêt**, **Puissance** (W), **Énergie** (kWh)                              |
+| Interrupteur d'éclairage, micromodules lumière et relais | **Marche/Arrêt** (et Puissance, Énergie si mesurées)                                |
+| Commande de volet, modules volet et store                | **Position** (0 % fermé, 100 % ouvert), **Ouvrir/Fermer** (ouvrir, fermer, arrêter) |
+
+**Énergie** est le compteur de la prise : Gladys y ajoute les
+fonctionnalités de consommation et de coût dans les écrans d'énergie.
+
+### Alarme intrusion
+
+Quand le contrôleur a le système d'alarme intrusion, l'appareil _Alarme
+intrusion_ affiche :
+
+- **Armée** : active quand le système est armé ;
+- **Alarme déclenchée** : active pendant une pré-alarme ou une alarme ;
+- **État de l'alarme** : _Désarmée_, _Armement en cours_, _Armée_,
+  _Pré-alarme_, _Alarme !_ ou _Alarme coupée_.
+
+L'alarme est en **lecture seule** par défaut. Avec **Autoriser l'armement
+depuis Gladys**, l'action de scène _Armer l'alarme intrusion_ peut l'armer.
+La désarmer ou la couper n'est jamais possible depuis Gladys : une scène, un
+assistant vocal ou un tableau de bord partagé ne doivent pas pouvoir couper
+la protection de la maison. Utilisez l'application Bosch pour cela.
 
 ## Tableau de bord
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+Le widget **Bosch Smart Home** (dans la liste des widgets d'un tableau de
+bord) résume la maison : l'état du contrôleur, de l'alarme intrusion, le
+nombre de portes et fenêtres ouvertes, de piles faibles, d'appareils muets,
+puis leurs noms. Il est en lecture seule.
+
+Les fonctionnalités elles-mêmes se placent sur un tableau de bord comme
+d'habitude (widget _Appareils de la pièce_, widget thermostat…).
+
+## Scènes
+
+### Déclencheurs
+
+**Détecteur de fumée en alarme** : un détecteur de fumée détecte de la fumée,
+ou sonne parce qu'un autre en détecte. Filtres : le détecteur, l'origine
+(_Fumée détectée par ce détecteur_ ou _Alarme relayée d'un autre détecteur_).
+Informations transmises à la scène : _Nom du détecteur_, _Pièce_, _Origine_
+(`detected` ou `relayed`).
+
+**Interrupteur universel appuyé** : un appui court ou long sur une touche
+d'un interrupteur universel Bosch. Filtres : l'interrupteur, la touche
+(haut, bas, et les quatre du modèle à quatre touches), l'appui (_Appui
+court_, _Appui long_). Informations transmises : _Nom de l'interrupteur_,
+_Pièce_, _Touche_, _Appui_.
+
+Les autres états (une fenêtre ouverte, une fuite, l'alarme armée) sont des
+fonctionnalités d'appareil : utilisez le déclencheur habituel _État d'un
+appareil_ de Gladys.
+
+### Actions
+
+**Armer l'alarme intrusion** : arme le système d'alarme du contrôleur avec un
+profil de protection : _Protection totale_, _Protection partielle_ ou
+_Protection personnalisée_ (tels que réglés dans l'application Bosch). Elle
+ne fonctionne que si **Autoriser l'armement depuis Gladys** est activé ;
+sinon l'action échoue et la scène continue.
+
+### Idées de scènes
+
+- **Incendie** : déclencheur _Détecteur de fumée en alarme_ → allumer toutes
+  les lumières, ouvrir les volets, envoyer à tous un message avec la _Pièce_
+  du détecteur (depuis le sélecteur de variables).
+- **Bouton de chevet** : déclencheur _Interrupteur universel appuyé_, touche
+  bas, appui long → fermer tous les volets et éteindre les lumières.
+- **Fenêtre ouverte, chauffage coupé** : déclencheur _État d'un appareil_ sur
+  l'_Ouverture_ de la fenêtre du salon = ouvert pendant 2 minutes → passer le
+  _Mode de chauffage_ de la pièce sur _Arrêt (été)_ ; revenir à _Programme_
+  une fois fermée.
+- **Départ de la maison** : quand la maison devient vide → _Armer l'alarme
+  intrusion_ (_Protection totale_), après avoir autorisé l'armement dans la
+  configuration.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- _Pas encore appairé_ : suivez _Mise en place_ ci-dessus ; l'appairage est
+  gardé dans le volume `/data` de l'intégration et survit aux mises à jour.
+- _le contrôleur n'est pas en mode appairage_ : le bouton n'a pas été tenu
+  assez longtemps, ou le mode appairage a pris fin avant le clic. Appuyez
+  jusqu'au clignotement, puis cliquez sur **Appairer** dans les secondes qui
+  suivent.
+- _mot de passe système refusé_ : vérifiez le mot de passe dans
+  l'application Bosch (il peut y être changé), saisissez-le de nouveau,
+  enregistrez et appairez de nouveau.
+- _le contrôleur ne répond pas à cette adresse_ : vérifiez l'adresse IP (elle
+  a pu changer : donnez une adresse fixe au contrôleur), et que Gladys joint
+  le contrôleur sur les ports 8443 (appairage) et 8444 (API).
+- _le contrôleur refuse Gladys (appairez-le de nouveau)_ : l'appairage a été
+  supprimé dans l'application Bosch, ou le contrôleur a été réinitialisé.
+  Appairez de nouveau.
+- _le certificat du contrôleur n'est pas un certificat Bosch valide_ : un
+  autre appareil répond à cette adresse, ou le certificat du contrôleur a
+  expiré. Vérifiez l'adresse ; si c'est la bonne, cochez **Ne pas vérifier le
+  certificat du contrôleur**.
+- Un nouvel appareil de l'application Bosch apparaît de lui-même dans
+  l'onglet **Découverte** en quelques secondes ; un appareil supprimé y
+  disparaît.
+- Journaux détaillés : réglez la variable d'environnement `LOG_LEVEL=debug`
+  de l'intégration. Les journaux ne contiennent jamais le mot de passe, la clé
+  ni le certificat.
+
+## Limites
+
+- **Développée sans le matériel** : testée contre un contrôleur simulé
+  seulement. Vos retours sont les bienvenus.
+- Un seul contrôleur par instance de Gladys.
+- Appareils pris en charge : thermostats de radiateur I et II, thermostats
+  d'ambiance, thermostats muraux, contacts de porte/fenêtre I et II,
+  détecteurs de mouvement I et II, détecteurs de fumée I et II, prises
+  connectées et compactes, interrupteurs d'éclairage, micromodules lumière et
+  relais, commandes de volet I et II, modules volet et store, détecteurs de
+  fuite d'eau, interrupteurs universels. **Non pris en charge** (ignorés) :
+  Twinguard, caméras, sirène extérieure, variateurs et lumières colorées,
+  circuits de chauffage et chaudières, simulation de présence, scénarios et
+  automatisations Bosch.
+- Non proposés : la position de vanne des thermostats de radiateur, la
+  luminosité du détecteur de mouvement II, les préréglages boost et éco, le
+  verrouillage enfant et les autres réglages des appareils.
+- L'alarme intrusion peut seulement être armée (sur option), jamais désarmée
+  ni coupée.
+- Bosch demande aux clients locaux d'utiliser le long polling et de limiter
+  le nombre de requêtes : l'intégration garde une seule requête d'événements
+  ouverte à la fois (30 s chacune), relit tout toutes les 15 minutes (4
+  requêtes) et renvoie à Gladys les valeurs inchangées toutes les 6 heures.
+- L'API locale de Bosch est réservée à un usage privé et non commercial.

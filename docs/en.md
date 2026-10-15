@@ -1,61 +1,225 @@
-# Demo Devices Template
+# Bosch Smart Home
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+Connect your **Bosch Smart Home Controller** (first or second generation) to
+Gladys, over your local network, without any cloud: the heating of each room
+(temperature, setpoint, mode), the radiator and room thermostats, the
+door/window contacts, the motion detectors, the smoke detectors, the plugs,
+the switches, the shutters, the water leak detectors, the universal switches
+and the state of the intrusion alarm.
 
-## What you get
+> **Developed without the hardware: feedback welcome.** This integration was
+> built from the public local API of the controller and from the work of the
+> boschshcpy library, and tested against a simulated controller, not a real
+> one. If something does not work as described, please say so on the
+> [Gladys forum](https://community.gladysassistant.com) or in the
+> [issues](https://github.com/guim31/gladys-bosch-shc/issues).
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+This integration is not affiliated with, nor endorsed by, Bosch.
 
-## Configuration
+## What you need
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+- Gladys Assistant 5.1.0 or later.
+- A **Bosch Smart Home Controller** (I or II), installed with the Bosch Smart
+  Home app, on the same local network as Gladys.
+- Its **IP address**. The app shows it under _Settings_ → _System_ → _Smart
+  Home Controller_; your router shows it too. Give the controller a fixed
+  address (DHCP reservation in your router): the integration reaches it by
+  this address.
+- Its **system password**, chosen when the controller was installed. It is
+  only used once, for the pairing.
+- Physical access to the controller, to press its button during the pairing.
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+## Set up
 
-## Actions
+The controller only talks to the clients it has paired. Pairing registers
+Gladys as a client of the controller, with a certificate the integration
+generates and keeps in its `/data` volume.
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+1. In Gladys, open **Integrations** → **Bosch Smart Home** → **Configuration**.
+2. Enter the **Controller IP address** (e.g. `192.168.1.20`) and the **System
+   password**, then **save**.
+3. Go to the controller and **press its button** (on the front) until its
+   lights flash: the controller is now in pairing mode, for a short while.
+4. Back in Gladys, click **Pair** right away. After a few seconds the result
+   shows under the button: _Paired. N device(s) found_.
+5. Open the **Discovery** tab and add the devices you want.
 
-## Scenes
+Once paired, the system password is erased from the Gladys configuration: it
+is not needed any more. The pairing appears in the Bosch app (as
+_oss_Gladys_Assistant_), where you can remove it at any time.
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+**Test the connection** reads the controller again and tells its software
+version and how many devices are supported.
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+The other settings:
+
+- **Language of the names**: the language of the feature names given to the
+  new devices and of the texts sent by the integration (French by default).
+- **Motion lasts**: a motion detector only tells the time of each detection;
+  this is how long its _Motion_ feature then stays on (1 minute by default).
+- **Allow arming from Gladys**: off by default, see _Intrusion alarm_ below.
+- **Do not check the controller certificate**: off. Only for a controller
+  whose certificate expired because it stayed offline for years: the
+  connection then fails with a certificate error.
+
+## Devices
+
+Each supported device of the controller becomes a Gladys device, named as in
+the Bosch app. The states arrive in real time: the integration keeps an event
+subscription open on the controller (long polling, as Bosch recommends), and
+reads everything again every 15 minutes as a safety net. A device the
+controller reports as unavailable shows the _unreachable_ badge.
+
+### Heating
+
+Bosch handles the heating **per room**: for each room with radiator
+thermostats, the controller has a room climate control, which becomes the
+device _Heating <room>_:
+
+| Feature            | What it does                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| **Temperature**    | Room temperature measured by the controller.                                                     |
+| **Setpoint**       | Target temperature, 5 to 30 °C by half degrees. Changing it in manual mode keeps it.             |
+| **Heating mode**   | _Off (summer)_, _Manual_ (fixed setpoint) or _Schedule_ (the weekly programme of the Bosch app). |
+| **Heating demand** | Whether a radiator of the room is asking for heat.                                               |
+
+In _Schedule_ mode, a new setpoint lasts until the next step of the programme,
+as in the Bosch app. When the room is in eco mode, a new setpoint leaves eco.
+
+The **radiator thermostats** and the **room thermostats** are devices too:
+**Temperature**, **Humidity** (room thermostats that measure it) and **Low
+battery**.
+
+### Sensors
+
+| Device              | Features                        |
+| ------------------- | ------------------------------- |
+| Door/window contact | **Opening**, **Low battery**    |
+| Motion detector     | **Motion**, **Low battery**     |
+| Smoke detector      | **Smoke**, **Low battery**      |
+| Water leak detector | **Water leak**, **Low battery** |
+| Universal switch    | **Low battery**                 |
+
+**Smoke** is on when the detector itself detects smoke. When another detector
+of the house does, every detector sounds, but only the one in the smoky room
+shows **Smoke**: the trigger _Smoke detector in alarm_ tells both cases apart.
+
+### Plugs, switches and shutters
+
+| Device                                      | Features                                                                  |
+| ------------------------------------------- | ------------------------------------------------------------------------- |
+| Smart plug, compact plug                    | **On/Off**, **Power** (W), **Energy** (kWh)                               |
+| Light switch, light and relay micromodules  | **On/Off** (and Power, Energy if measured)                                |
+| Shutter control, shutter and awning modules | **Position** (0 % closed, 100 % open), **Open/Close** (open, close, stop) |
+
+**Energy** is the counter of the plug: Gladys adds the consumption and cost
+features to it in the energy screens.
+
+### Intrusion alarm
+
+When the controller has the intrusion detection system, the device
+_Intrusion alarm_ shows:
+
+- **Armed**: on when the system is armed;
+- **Alarm triggered**: on during a pre-alarm or an alarm;
+- **Alarm status**: _Disarmed_, _Arming_, _Armed_, _Pre-alarm_, _Alarm!_ or
+  _Alarm muted_.
+
+The alarm is **read-only** by default. With **Allow arming from Gladys**, the
+scene action _Arm the intrusion alarm_ can arm it. Disarming and muting are
+never possible from Gladys: a scene, a voice assistant or a shared dashboard
+must not be able to switch the protection of the house off. Use the Bosch app
+for that.
 
 ## Dashboard
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+The widget **Bosch Smart Home** (in the widget list of a dashboard) sums the
+house up: the state of the controller, of the intrusion alarm, how many doors
+and windows are open, how many batteries are low, how many devices do not
+answer, then the names. It is read-only.
+
+The features themselves go on a dashboard as usual (_Devices in room_
+widget, thermostat widget…).
+
+## Scenes
+
+### Triggers
+
+**Smoke detector in alarm**: a smoke detector detects smoke, or sounds
+because another one does. Filters: the detector, the origin (_Smoke detected
+by this detector_ or _Alarm relayed from another detector_). Information
+passed on to the scene: _Detector name_, _Room_, _Origin_ (`detected` or
+`relayed`).
+
+**Universal switch pressed**: a short or long press on a button of a Bosch
+universal switch. Filters: the switch, the button (upper, lower, and the four
+of the four-button model), the press (_Short press_, _Long press_).
+Information passed on: _Switch name_, _Room_, _Button_, _Press_.
+
+The other states (a window opened, a leak, the alarm armed) are device
+features: use the usual _Device state_ trigger of Gladys.
+
+### Actions
+
+**Arm the intrusion alarm**: arms the alarm system of the controller with a
+protection profile: _Full protection_, _Partial protection_ or _Individual
+protection_ (as set up in the Bosch app). It only works when **Allow arming
+from Gladys** is on; otherwise the action fails and the scene goes on.
+
+### Scene ideas
+
+- **Fire**: trigger _Smoke detector in alarm_ → turn every light on, open the
+  shutters, send everyone a message with the _Room_ of the detector (from the variable picker).
+- **Bedside button**: trigger _Universal switch pressed_, lower button, long
+  press → close every shutter and turn the lights off.
+- **Window open, heating off**: trigger _Device state_ on _Opening_ of the
+  living-room window = open for 2 minutes → set the _Heating mode_ of the room
+  to _Off (summer)_; back to _Schedule_ once closed.
+- **Leaving home**: when the house becomes empty → _Arm the intrusion alarm_
+  (_Full protection_), after allowing arming in the configuration.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- _Not paired yet_: follow _Set up_ above; the pairing is kept in the `/data`
+  volume of the integration, and survives updates.
+- _the controller is not in pairing mode_: the button was not pressed long
+  enough, or the pairing mode ended before the click. Press until the lights
+  flash, then click **Pair** within a few seconds.
+- _system password refused_: check the password in the Bosch app (it can be
+  changed there), type it again, save, and pair again.
+- _the controller does not answer at this address_: check the IP address
+  (it may have changed: give the controller a fixed one), and that Gladys can
+  reach the controller on ports 8443 (pairing) and 8444 (API).
+- _the controller refuses Gladys (pair it again)_: the pairing was removed in
+  the Bosch app, or the controller was reset. Pair again.
+- _the controller certificate is not a valid Bosch certificate_: another
+  device answers at this address, or the certificate of the controller
+  expired. Check the address; if it is the right one, tick **Do not check the
+  controller certificate**.
+- A new device of the Bosch app appears in the **Discovery** tab by itself
+  within seconds; a device removed there disappears from it.
+- Detailed logs: set the `LOG_LEVEL=debug` environment variable of the
+  integration. The logs never contain the password, the key or the
+  certificate.
+
+## Limits
+
+- **Developed without the hardware**: tested against a simulated controller
+  only. Feedback welcome.
+- One controller per Gladys instance.
+- Supported devices: radiator thermostats I and II, room thermostats, wall
+  thermostats, door/window contacts I and II, motion detectors I and II, smoke
+  detectors I and II, smart plugs and compact plugs, light switches, light and
+  relay micromodules, shutter controls I and II, shutter and awning modules,
+  water leak detectors, universal switches. **Not supported** (ignored):
+  Twinguard, cameras, outdoor siren, dimmers and coloured lights, heating
+  circuits and boilers, presence simulation, Bosch scenarios and automations.
+- Not offered: the valve position of the radiator thermostats, the
+  illuminance of motion detector II, the boost and eco presets, the child
+  lock and the other settings of the devices.
+- The intrusion alarm can only be armed (opt-in), never disarmed nor muted.
+- Bosch asks local clients to use long polling and to keep the number of
+  requests low: the integration keeps one event request open at a time (30 s
+  each), reads everything again every 15 minutes (4 requests), and re-sends
+  the unchanged values to Gladys every 6 hours.
+- The local API of Bosch is for private, non-commercial use.

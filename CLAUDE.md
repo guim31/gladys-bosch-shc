@@ -16,8 +16,9 @@ its only runtime dependency. It started from the official JavaScript template.
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/hub.test.js              # one file
+node --test --test-name-pattern "smoke"   # tests whose name matches
+node scripts/probe.mjs <ip>               # read-only probe of a real controller
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
@@ -31,16 +32,26 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+index.js                          SDK wiring only: index.js → src/app.js (handlers registered before connect())
+src/app.js                        every SDK handler, wired to the hub (also used by the tests)
+src/hub.js                        the controller: connection, long polling, full reads, commands,
+                                  scene events, pairing and connection test, publishing to Gladys
+src/devices.js                    Bosch device → Gladys device and feature states, feature names (4 languages)
+src/shc/client.js                 local API client: REST, JSON-RPC long polling, pairing, public info
+src/shc/http.js                   node:https with client certificate, error kinds
+src/shc/x509.js                   RSA key + self-signed certificate (DER built by hand, no dependency)
+src/shc/model.js                  supported models and the readers of the controller states
+src/shc/bosch-root-ca.pem         Bosch "Smart Home Controller Productive Root CA"
+src/store.js                      the pairing under /data (key, certificate, client id; mode 0600)
+src/scenes.js                     scene action `arm_intrusion` (opt-in)
+src/widgets.js                    dashboard widget `overview`
+src/texts.js, src/issues.js       messages (4 languages), failures logged once
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
+scripts/probe.mjs                 read-only probe of a real controller (for the orchestrator)
 gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (same sections)
+test/                             node --test, against the SDK's fake Gladys and test/helpers/fakeController.js
+test/fixtures/shc/                hand-written controller answers (see its README)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -56,8 +67,7 @@ test/                             node --test, against the SDK's fake Gladys (in
   writable volume. Never log tokens, passwords or API keys.
 - **Versions belong to the Release workflow** (Actions → Release). Never edit
   `version` in `package.json` or in the manifest, nor the `docker_image` tag,
-  by hand — except on the README's hand-pushed tag path, which bumps all three
-  together before tagging. `test/manifest.test.js` checks they agree.
+  by hand. `test/manifest.test.js` checks they agree.
 - **Changelog.** Every user-visible change adds a line under `## [Unreleased]`
   in `CHANGELOG.md` (`### Added`, `Changed`, `Fixed`, `Removed`, `Security`).
   Never write a version heading: the Release workflow moves the section, and it
@@ -70,8 +80,9 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German ("du") and Spanish
+  ("usted"): action messages, manifest texts, feature names, widget texts and
+  `docs/{en,fr,de,es}.md`, kept in sync. `test/i18n.test.js` checks it.
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +244,43 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## Bosch Smart Home : API et pièges (découverts sur cette intégration)
+
+Développée **sans contrôleur** : tout ce qui suit vient de boschshcpy (BSD-3), de l'intégration
+HA `bosch_shc` (Apache-2.0) et de la doc Bosch (CC BY-NC-ND : lue, jamais recopiée). À confirmer
+par `scripts/probe.mjs` sur un vrai contrôleur.
+
+- **Trois ports.** 8443 : appairage (`POST /smarthome/clients`, en-tête `Systempassword` = mot de
+  passe système en base64, contrôleur en mode appairage après appui sur son bouton, sinon la
+  session TLS est refusée). 8444 : API REST `/smarthome/...` et long polling `/remote/json-rpc`,
+  authentifiés par le **certificat client** (TLS mutuel). 8446 : `/smarthome/public/information`
+  sans authentification. En-tête `api-version: 3.2`.
+- **Conditions de l'API locale Bosch** : client `oss_…`, rôle `ROLE_RESTRICTED_CLIENT`, usage privé
+  non commercial, pas de logo ni de « works with Bosch », rien qui contourne une confirmation de
+  sécurité. D'où : **jamais de désarmement ni de coupure d'alarme**, armement seulement sur option.
+- **Certificat client** : Node ne sait pas fabriquer un X.509 ; `src/shc/x509.js` encode le DER
+  (testé par OpenSSL et `X509Certificate`). Le contrôleur reçoit le PEM sur **une ligne**, encadré
+  de `\r` (format de boschshcpy).
+- **Certificat du contrôleur** : émis pour son nom, pas pour l'IP saisie → vérifier la chaîne
+  (racine Bosch embarquée), **pas** le nom d'hôte. L'autorité intermédiaire Bosch de 2015 a expiré
+  en août 2025 : un contrôleur resté hors ligne peut présenter un certificat expiré, d'où l'option
+  « Ne pas vérifier le certificat du contrôleur » (boschshcpy #264).
+- **Connexions** : le contrôleur coupe sans prévenir les connexions keep-alive inactives
+  (boschshcpy #281) → une connexion par requête (`agent: false`).
+- **Abonnement** : 24 h maximum, expire après 5 min sans requête ; une erreur JSON-RPC (-32001)
+  veut dire « réabonner » ; les événements du trou sont perdus → relecture complète.
+- **Chauffage par pièce** : consigne et mode sont sur le `ROOM_CLIMATE_CONTROL` (un par pièce,
+  id `roomClimateControl_hz_N`), pas sur les têtes thermostatiques. Arrêt = `summerMode: true`. Une
+  consigne est refusée en mode éco (`low: true`) : envoyer `low: false` d'abord.
+- **Événements répétés** : `LatestMotion` et `Alarm` sont renvoyés à l'identique quand un autre
+  service de l'appareil change (pile…) : dédupliquer (date de mouvement, état d'alarme,
+  `eventTimestamp` du clavier). Un mouvement n'est qu'une date : la fonctionnalité binaire est
+  levée pour une durée réglable.
+- **Volet I** envoie `level` en **chaîne** (`"0.590"`) et pas d'`operationState`.
+- **Batterie** : pas de pourcentage, seulement des `faults.entries[].type` (`LOW_BATTERY`…) sur le
+  service `BatteryLevel` ; un événement **sans** `faults` veut dire batterie OK.
+- **Ids d'appareils enfants** avec `#` (`hdm:ZigBee:…#2`) : échapper en `%23` dans les chemins.
+- **Faux contrôleur** (`test/helpers/fakeController.js`) : trois vrais serveurs HTTPS signés par une
+  autorité de test, certificat client vérifié par empreinte. Les tests de bout en bout passent par
+  la vraie pile TLS ; l'option `ca`/`ports` de `registerHandlers` ne sert qu'aux tests.

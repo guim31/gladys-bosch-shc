@@ -1,0 +1,30 @@
+{
+  "@type": "systemState",
+  "systemAvailability": {
+    "@type": "systemAvailabilityState",
+    "available": true,
+    "deleted": false
+  },
+  "armingState": {
+    "@type": "armingState",
+    "state": "SYSTEM_DISARMED",
+    "deleted": false
+  },
+  "alarmState": {
+    "@type": "alarmState",
+    "value": "ALARM_OFF",
+    "incidents": [],
+    "deleted": false
+  },
+  "activeConfigurationProfile": {
+    "@type": "activeConfigurationProfile",
+    "profileId": "0",
+    "deleted": false
+  },
+  "securityGapState": {
+    "@type": "securityGapState",
+    "securityGaps": [],
+    "deleted": false
+  },
+  "deleted": false
+}

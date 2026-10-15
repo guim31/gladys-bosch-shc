@@ -1,177 +1,628 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Bosch Smart Home",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Bosch Smart Home Controller, locally: heating, contacts, smoke, plugs, shutters, alarm status.",
+    "fr": "Contrôleur Bosch Smart Home en local : chauffage, contacts, fumée, prises, volets, alarme.",
+    "de": "Bosch Smart Home Controller lokal: Heizung, Kontakte, Rauch, Steckdosen, Rollläden, Alarm.",
+    "es": "Controlador Bosch Smart Home en local: calefacción, contactos, humo, enchufes, persianas, alarma."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-bosch-shc:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-bosch-shc/main/cover.png",
+  "categories": ["climate", "protocols", "security"],
+  "transports": ["local"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your Smart Home Controller",
+        "fr": "Votre Smart Home Controller",
+        "de": "Dein Smart Home Controller",
+        "es": "Su Smart Home Controller"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Smart Home Controller I or II, on the same network as Gladys. 1. Enter its IP address and its system password, save. 2. Press the button of the controller until its lights flash. 3. Click \"Pair\" within a minute.",
+        "fr": "Smart Home Controller I ou II, sur le même réseau que Gladys. 1. Saisissez son adresse IP et son mot de passe système, enregistrez. 2. Appuyez sur le bouton du contrôleur jusqu'au clignotement. 3. Cliquez sur « Appairer » dans la minute.",
+        "de": "Smart Home Controller I oder II, im selben Netzwerk wie Gladys. 1. Gib seine IP-Adresse und sein Systempasswort ein und speichere. 2. Halte die Taste des Controllers, bis die LEDs blinken. 3. Klicke innerhalb einer Minute auf „Koppeln“.",
+        "es": "Smart Home Controller I o II, en la misma red que Gladys. 1. Introduzca su dirección IP y su contraseña del sistema y guarde. 2. Pulse el botón del controlador hasta que parpadeen las luces. 3. Haga clic en «Emparejar» antes de un minuto."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/guim31/gladys-bosch-shc/blob/main/docs/en.md",
+          "label": {
+            "en": "Step-by-step pairing guide",
+            "fr": "Guide d'appairage pas à pas",
+            "de": "Schritt-für-Schritt-Anleitung zur Kopplung",
+            "es": "Guía de emparejamiento paso a paso"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "host",
+      "type": "string",
+      "label": {
+        "en": "Controller IP address",
+        "fr": "Adresse IP du contrôleur",
+        "de": "IP-Adresse des Controllers",
+        "es": "Dirección IP del controlador"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
+      "description": {
+        "en": "Shown in the Bosch Smart Home app (Settings, System, Smart Home Controller) or in your router. Give it a fixed address.",
+        "fr": "Affichée dans l'application Bosch Smart Home (Paramètres, Système, Smart Home Controller) ou dans votre box. Donnez-lui une adresse fixe.",
+        "de": "Steht in der Bosch Smart Home App (Einstellungen, System, Smart Home Controller) oder in deinem Router. Gib ihm eine feste Adresse.",
+        "es": "Aparece en la aplicación Bosch Smart Home (Ajustes, Sistema, Smart Home Controller) o en su router. Asígnele una dirección fija."
+      },
+      "placeholder": {
+        "en": "e.g. 192.168.1.20",
+        "fr": "ex. 192.168.1.20",
+        "de": "z. B. 192.168.1.20",
+        "es": "p. ej. 192.168.1.20"
+      },
       "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "default": ""
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+      "key": "system_password",
+      "type": "secret",
+      "label": {
+        "en": "System password",
+        "fr": "Mot de passe système",
+        "de": "Systempasswort",
+        "es": "Contraseña del sistema"
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
+      "description": {
+        "en": "The password chosen when the controller was installed. Used once, for the pairing, then erased from Gladys.",
+        "fr": "Le mot de passe choisi à l'installation du contrôleur. Utilisé une fois, pour l'appairage, puis effacé de Gladys.",
+        "de": "Das Passwort, das bei der Einrichtung des Controllers gewählt wurde. Wird einmal zum Koppeln genutzt und dann aus Gladys gelöscht.",
+        "es": "La contraseña elegida al instalar el controlador. Se usa una vez, para el emparejamiento, y luego se borra de Gladys."
+      },
+      "required": false
     },
     {
-      "key": "unit",
+      "key": "language",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "label": {
+        "en": "Language of the names",
+        "fr": "Langue des noms",
+        "de": "Sprache der Namen",
+        "es": "Idioma de los nombres"
+      },
+      "description": {
+        "en": "Language of the feature names given to new devices and of the texts sent by the integration.",
+        "fr": "Langue des noms de fonctionnalités des nouveaux appareils et des textes envoyés par l'intégration.",
+        "de": "Sprache der Funktionsnamen neuer Geräte und der Texte, die die Integration sendet.",
+        "es": "Idioma de los nombres de las funciones de los nuevos dispositivos y de los textos que envía la integración."
+      },
       "required": false,
-      "default": "celsius",
+      "default": "fr",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "motion_hold_seconds",
+      "type": "select",
+      "label": {
+        "en": "Motion lasts",
+        "fr": "Durée d'un mouvement",
+        "de": "Dauer einer Bewegung",
+        "es": "Duración de un movimiento"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "The controller only sends the time of each detection: how long a motion detector then shows \"motion\".",
+        "fr": "Le contrôleur n'envoie que l'heure de chaque détection : durée pendant laquelle un détecteur affiche alors « mouvement ».",
+        "de": "Der Controller meldet nur den Zeitpunkt jeder Erkennung: So lange zeigt ein Bewegungsmelder danach „Bewegung“ an.",
+        "es": "El controlador solo envía la hora de cada detección: tiempo durante el que un detector muestra entonces «movimiento»."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "60",
+      "options": [
+        {
+          "value": "30",
+          "label": {
+            "en": "30 seconds",
+            "fr": "30 secondes",
+            "de": "30 Sekunden",
+            "es": "30 segundos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "2 minutes",
+            "fr": "2 minutes",
+            "de": "2 Minuten",
+            "es": "2 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        }
+      ]
+    },
+    {
+      "key": "security",
+      "type": "section",
+      "label": {
+        "en": "Security",
+        "fr": "Sécurité",
+        "de": "Sicherheit",
+        "es": "Seguridad"
+      },
+      "description": {
+        "en": "The intrusion alarm is read-only by default. Disarming and muting it are never possible from Gladys.",
+        "fr": "L'alarme intrusion est en lecture seule par défaut. La désarmer ou la couper n'est jamais possible depuis Gladys.",
+        "de": "Der Einbruchalarm ist standardmäßig nur lesbar. Unscharf schalten oder stummschalten geht aus Gladys nie.",
+        "es": "La alarma de intrusión es de solo lectura por defecto. Desarmarla o silenciarla nunca es posible desde Gladys."
+      }
+    },
+    {
+      "key": "allow_arming",
+      "type": "boolean",
+      "label": {
+        "en": "Allow arming from Gladys",
+        "fr": "Autoriser l'armement depuis Gladys",
+        "de": "Scharfschalten aus Gladys erlauben",
+        "es": "Permitir el armado desde Gladys"
+      },
+      "description": {
+        "en": "Lets the \"Arm the intrusion alarm\" scene action arm the alarm system of the controller.",
+        "fr": "Permet à l'action de scène « Armer l'alarme intrusion » d'armer le système d'alarme du contrôleur.",
+        "de": "Erlaubt der Szenenaktion „Einbruchalarm scharf schalten“, das Alarmsystem des Controllers scharf zu schalten.",
+        "es": "Permite que la acción de escena «Armar la alarma de intrusión» arme el sistema de alarma del controlador."
+      },
+      "required": false,
+      "default": false
+    },
+    {
+      "key": "skip_certificate_check",
+      "type": "boolean",
+      "label": {
+        "en": "Do not check the controller certificate",
+        "fr": "Ne pas vérifier le certificat du contrôleur",
+        "de": "Zertifikat des Controllers nicht prüfen",
+        "es": "No comprobar el certificado del controlador"
+      },
+      "description": {
+        "en": "Only if the connection fails with a certificate error (a controller kept offline for years). Less secure.",
+        "fr": "Seulement si la connexion échoue sur une erreur de certificat (contrôleur resté hors ligne des années). Moins sûr.",
+        "de": "Nur wenn die Verbindung mit einem Zertifikatsfehler scheitert (Controller jahrelang offline). Weniger sicher.",
+        "es": "Solo si la conexión falla por un error de certificado (controlador sin Internet durante años). Menos seguro."
+      },
+      "required": false,
+      "default": false
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
+      "key": "pair",
+      "label": {
+        "en": "Pair",
+        "fr": "Appairer",
+        "de": "Koppeln",
+        "es": "Emparejar"
+      },
+      "description": {
+        "en": "Press the button of the controller until its lights flash, then click here.",
+        "fr": "Appuyez sur le bouton du contrôleur jusqu'au clignotement, puis cliquez ici.",
+        "de": "Halte die Taste des Controllers, bis die LEDs blinken, und klicke dann hier.",
+        "es": "Pulse el botón del controlador hasta que parpadeen las luces y haga clic aquí."
+      },
+      "timeout_seconds": 60
     },
     {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
+      "timeout_seconds": 30
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "smoke_alarm",
+      "label": {
+        "en": "Smoke detector in alarm",
+        "fr": "Détecteur de fumée en alarme",
+        "de": "Rauchmelder im Alarm",
+        "es": "Detector de humo en alarma"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "A smoke detector of the controller detects smoke, or sounds because another one does.",
+        "fr": "Un détecteur de fumée du contrôleur détecte de la fumée, ou sonne parce qu'un autre en détecte.",
+        "de": "Ein Rauchmelder des Controllers erkennt Rauch oder löst aus, weil ein anderer Rauch erkennt.",
+        "es": "Un detector de humo del controlador detecta humo, o suena porque otro lo detecta."
       },
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "label": {
+            "en": "Detector",
+            "fr": "Détecteur",
+            "de": "Melder",
+            "es": "Detector"
+          }
         },
         {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
+          "key": "alarm",
+          "type": "select",
+          "label": {
+            "en": "Origin",
+            "fr": "Origine",
+            "de": "Ursprung",
+            "es": "Origen"
+          },
           "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
+            {
+              "value": "detected",
+              "label": {
+                "en": "Smoke detected by this detector",
+                "fr": "Fumée détectée par ce détecteur",
+                "de": "Rauch von diesem Melder erkannt",
+                "es": "Humo detectado por este detector"
+              }
+            },
+            {
+              "value": "relayed",
+              "label": {
+                "en": "Alarm relayed from another detector",
+                "fr": "Alarme relayée d'un autre détecteur",
+                "de": "Alarm von einem anderen Melder weitergeleitet",
+                "es": "Alarma transmitida desde otro detector"
+              }
+            }
           ]
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "device_name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Detector name",
+            "fr": "Nom du détecteur",
+            "de": "Name des Melders",
+            "es": "Nombre del detector"
+          }
+        },
+        {
+          "key": "room",
+          "type": "string",
+          "label": {
+            "en": "Room",
+            "fr": "Pièce",
+            "de": "Raum",
+            "es": "Habitación"
+          }
+        },
+        {
+          "key": "alarm",
+          "type": "string",
+          "label": {
+            "en": "Origin (detected or relayed)",
+            "fr": "Origine (detected ou relayed)",
+            "de": "Ursprung (detected oder relayed)",
+            "es": "Origen (detected o relayed)"
+          }
+        }
+      ]
+    },
+    {
+      "key": "button_pressed",
+      "label": {
+        "en": "Universal switch pressed",
+        "fr": "Interrupteur universel appuyé",
+        "de": "Universalschalter gedrückt",
+        "es": "Interruptor universal pulsado"
+      },
+      "description": {
+        "en": "A short or long press on a button of a Bosch universal switch.",
+        "fr": "Un appui court ou long sur une touche d'un interrupteur universel Bosch.",
+        "de": "Ein kurzer oder langer Druck auf eine Taste eines Bosch-Universalschalters.",
+        "es": "Una pulsación corta o larga en una tecla de un interruptor universal Bosch."
+      },
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Switch",
+            "fr": "Interrupteur",
+            "de": "Schalter",
+            "es": "Interruptor"
+          }
+        },
+        {
+          "key": "button",
+          "type": "select",
+          "label": {
+            "en": "Button",
+            "fr": "Touche",
+            "de": "Taste",
+            "es": "Tecla"
+          },
+          "options": [
+            {
+              "value": "upper",
+              "label": {
+                "en": "Upper",
+                "fr": "Haut",
+                "de": "Oben",
+                "es": "Superior"
+              }
+            },
+            {
+              "value": "lower",
+              "label": {
+                "en": "Lower",
+                "fr": "Bas",
+                "de": "Unten",
+                "es": "Inferior"
+              }
+            },
+            {
+              "value": "upper_left",
+              "label": {
+                "en": "Upper left",
+                "fr": "Haut gauche",
+                "de": "Oben links",
+                "es": "Superior izquierda"
+              }
+            },
+            {
+              "value": "upper_right",
+              "label": {
+                "en": "Upper right",
+                "fr": "Haut droite",
+                "de": "Oben rechts",
+                "es": "Superior derecha"
+              }
+            },
+            {
+              "value": "lower_left",
+              "label": {
+                "en": "Lower left",
+                "fr": "Bas gauche",
+                "de": "Unten links",
+                "es": "Inferior izquierda"
+              }
+            },
+            {
+              "value": "lower_right",
+              "label": {
+                "en": "Lower right",
+                "fr": "Bas droite",
+                "de": "Unten rechts",
+                "es": "Inferior derecha"
+              }
+            }
+          ]
+        },
+        {
+          "key": "press",
+          "type": "select",
+          "label": {
+            "en": "Press",
+            "fr": "Appui",
+            "de": "Druck",
+            "es": "Pulsación"
+          },
+          "options": [
+            {
+              "value": "short",
+              "label": {
+                "en": "Short press",
+                "fr": "Appui court",
+                "de": "Kurzer Druck",
+                "es": "Pulsación corta"
+              }
+            },
+            {
+              "value": "long",
+              "label": {
+                "en": "Long press",
+                "fr": "Appui long",
+                "de": "Langer Druck",
+                "es": "Pulsación larga"
+              }
+            }
+          ]
+        }
+      ],
+      "variables": [
+        {
+          "key": "device_name",
+          "type": "string",
+          "label": {
+            "en": "Switch name",
+            "fr": "Nom de l'interrupteur",
+            "de": "Name des Schalters",
+            "es": "Nombre del interruptor"
+          }
+        },
+        {
+          "key": "room",
+          "type": "string",
+          "label": {
+            "en": "Room",
+            "fr": "Pièce",
+            "de": "Raum",
+            "es": "Habitación"
+          }
+        },
+        {
+          "key": "button",
+          "type": "string",
+          "label": {
+            "en": "Button",
+            "fr": "Touche",
+            "de": "Taste",
+            "es": "Tecla"
+          }
+        },
+        {
+          "key": "press",
+          "type": "string",
+          "label": {
+            "en": "Press (short or long)",
+            "fr": "Appui (short ou long)",
+            "de": "Druck (short oder long)",
+            "es": "Pulsación (short o long)"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "arm_intrusion",
+      "label": {
+        "en": "Arm the intrusion alarm",
+        "fr": "Armer l'alarme intrusion",
+        "de": "Einbruchalarm scharf schalten",
+        "es": "Armar la alarma de intrusión"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Arms the alarm system of the controller. Needs \"Allow arming from Gladys\" in the configuration.",
+        "fr": "Arme le système d'alarme du contrôleur. Nécessite « Autoriser l'armement depuis Gladys » dans la configuration.",
+        "de": "Schaltet das Alarmsystem des Controllers scharf. Braucht „Scharfschalten aus Gladys erlauben“ in der Konfiguration.",
+        "es": "Arma el sistema de alarma del controlador. Requiere «Permitir el armado desde Gladys» en la configuración."
+      },
+      "timeout_seconds": 20,
       "fields": [
         {
-          "key": "device",
+          "key": "profile",
           "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "label": {
+            "en": "Protection",
+            "fr": "Protection",
+            "de": "Schutz",
+            "es": "Protección"
+          },
+          "required": true,
+          "default": "full",
+          "options": [
+            {
+              "value": "full",
+              "label": {
+                "en": "Full protection",
+                "fr": "Protection totale",
+                "de": "Vollschutz",
+                "es": "Protección total"
+              }
+            },
+            {
+              "value": "partial",
+              "label": {
+                "en": "Partial protection",
+                "fr": "Protection partielle",
+                "de": "Teilschutz",
+                "es": "Protección parcial"
+              }
+            },
+            {
+              "value": "custom",
+              "label": {
+                "en": "Individual protection",
+                "fr": "Protection personnalisée",
+                "de": "Individueller Schutz",
+                "es": "Protección personalizada"
+              }
+            }
+          ]
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
+          "key": "armed",
           "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "label": {
+            "en": "Arming started",
+            "fr": "Armement lancé",
+            "de": "Scharfschaltung gestartet",
+            "es": "Armado iniciado"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "overview",
+      "label": {
+        "en": "Bosch Smart Home",
+        "fr": "Bosch Smart Home",
+        "de": "Bosch Smart Home",
+        "es": "Bosch Smart Home"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Controller, alarm, open doors and windows, low batteries, silent devices.",
+        "fr": "Contrôleur, alarme, portes et fenêtres ouvertes, piles faibles, appareils muets.",
+        "de": "Controller, Alarm, offene Türen und Fenster, schwache Batterien, stumme Geräte.",
+        "es": "Controlador, alarma, puertas y ventanas abiertas, pilas bajas, dispositivos mudos."
+      },
+      "icon": "home"
     }
   ]
 }

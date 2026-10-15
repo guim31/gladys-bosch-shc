@@ -1,45 +1,76 @@
 // -----------------------------------------------------------------------------
-// Integration configuration.
-//
-// The configuration is filled in by the user in Gladys, from the `config_schema`
-// declared in `gladys-assistant-integration.json`. The SDK fetches it for you
-// (`gladys.getConfig()`) and notifies you of every change through
-// `gladys.onConfigUpdated()`.
-//
-// This module only provides defaults and normalizes the received object, so the
-// rest of the code never has to deal with `undefined`.
+// Integration configuration: defaults (they mirror the `default` values of the
+// manifest `config_schema`, see test/manifest.test.js) and normalization, so
+// the rest of the code never deals with strings, blanks or `undefined`.
 // -----------------------------------------------------------------------------
 
-// Defaults: they MUST stay consistent with the `default` values declared in the
-// `config_schema` of the manifest.
+export const LANGUAGES = ['en', 'fr', 'de', 'es'];
+
+// How long a motion detector stays "motion" after a detection, in seconds.
+export const MOTION_HOLD_SECONDS = ['30', '60', '120', '300'];
+
 export const DEFAULT_CONFIG = {
-  latitude: 48.8566, // Paris
-  longitude: 2.3522,
-  unit: 'celsius', // 'celsius' | 'fahrenheit'
-  // Seconds between two reads of the polled sensors. Gladys polls at most once
-  // a minute: slower intervals are applied by skipping polls (see
-  // createPoller in src/devices/index.js).
-  poll_frequency: 300,
-  // Reserved key (NOT in config_schema): because the manifest declares both
-  // 'local' and 'cloud' in its `transports` field, Gladys shows a standard
-  // "Prefer the local connection" toggle and sends the user's choice here.
-  // Read-only for the integration; defaults to true.
-  GLADYS_PREFER_LOCAL: true,
+  host: '',
+  system_password: '',
+  language: 'fr',
+  motion_hold_seconds: '60',
+  allow_arming: false,
+  skip_certificate_check: false,
 };
 
 /**
- * Merge the user config with the defaults.
- * @param {Record<string, unknown>} raw config returned by the SDK
+ * The controller address typed by the user: an IP address or a host name,
+ * without scheme, port or path (pasted from a browser, they are dropped).
+ * @param {unknown} raw
+ * @returns {string|null}
+ */
+export function parseHost(raw) {
+  if (typeof raw !== 'string') {
+    return null;
+  }
+  let text = raw.trim();
+  if (text === '') {
+    return null;
+  }
+  text = text.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
+  // Credentials in the address would end up in the logs.
+  if (text.includes('@')) {
+    return null;
+  }
+  text = text.split('/')[0];
+  // [IPv6]:port, then host:port.
+  const bracketed = text.match(/^\[([0-9a-f:.]+)\](?::\d+)?$/i);
+  if (bracketed) {
+    return bracketed[1];
+  }
+  if ((text.match(/:/g) ?? []).length === 1) {
+    text = text.split(':')[0];
+  }
+  if (!/^[a-z0-9.:-]+$/i.test(text) || text.startsWith('.') || text.startsWith('-')) {
+    return null;
+  }
+  return text.toLowerCase();
+}
+
+const isTrue = (value) => value === true || value === 'true';
+
+/**
+ * @param {Record<string, unknown>} raw the configuration returned by the SDK
  */
 export function normalizeConfig(raw = {}) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const typedHost = typeof source.host === 'string' ? source.host.trim() : '';
+  const hold = MOTION_HOLD_SECONDS.includes(String(source.motion_hold_seconds))
+    ? String(source.motion_hold_seconds)
+    : DEFAULT_CONFIG.motion_hold_seconds;
   return {
-    ...DEFAULT_CONFIG,
-    ...raw,
-    // Force the types: config may arrive as strings from a form.
-    latitude: Number(raw.latitude ?? DEFAULT_CONFIG.latitude),
-    longitude: Number(raw.longitude ?? DEFAULT_CONFIG.longitude),
-    poll_frequency: Number(raw.poll_frequency ?? DEFAULT_CONFIG.poll_frequency),
-    // The preference is a boolean; anything but an explicit false means true.
-    GLADYS_PREFER_LOCAL: raw.GLADYS_PREFER_LOCAL !== false,
+    host: parseHost(typedHost),
+    hostTyped: typedHost !== '',
+    // Kept as typed: spaces may be part of it. Only the pairing reads it.
+    password: typeof source.system_password === 'string' ? source.system_password : '',
+    language: LANGUAGES.includes(source.language) ? source.language : DEFAULT_CONFIG.language,
+    motionHoldMs: Number(hold) * 1000,
+    allowArming: isTrue(source.allow_arming),
+    insecure: isTrue(source.skip_certificate_check),
   };
 }

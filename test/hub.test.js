@@ -521,3 +521,21 @@ test('the states refresh on their own, without onPoll: long polling and timer', 
   // No onPoll was ever needed.
   assert.ok(!world.fake.wsMessages.some((m) => m.type === 'device.poll'));
 });
+
+test('an unchanged value is re-sent at least every 6 hours (heartbeat)', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.UTC(2026, 9, 12, 10, 0, 0) });
+  const world = await createWorld();
+  t.after(() => world.stop());
+  const sent = () =>
+    world.fake.states.filter(
+      (s) =>
+        s.device_feature_external_id === featureId(world.gladys, BOSCH.wallThermostat, 'humidity'),
+    ).length;
+  assert.equal(sent(), 1);
+  t.mock.timers.setTime(Date.UTC(2026, 9, 12, 15, 0, 0));
+  await world.hub.refresh();
+  assert.equal(sent(), 1, 'not before 6 hours');
+  t.mock.timers.setTime(Date.UTC(2026, 9, 12, 16, 1, 0));
+  await world.hub.refresh();
+  assert.equal(sent(), 2, 'the same value again after 6 hours');
+});

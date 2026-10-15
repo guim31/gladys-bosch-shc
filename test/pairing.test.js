@@ -112,8 +112,8 @@ test('the pairing survives a restart of the container', async (t) => {
 test('a new controller address keeps the pairing (DHCP): only the connection moves', async (t) => {
   const world = await createWorld();
   t.after(() => world.stop());
-  await world.fake.configUpdated({ host: '192.0.2.250', language: 'en' });
-  assert.equal(world.hub.client.host, '192.0.2.250');
+  await world.fake.configUpdated({ host: '127.0.0.2', language: 'en' });
+  assert.equal(world.hub.client.host, '127.0.0.2');
   assert.ok(world.hub.pairing, 'the pairing is kept');
   await world.fake.configUpdated({ host: world.controller.host, language: 'en' });
   assert.deepEqual(world.fake.connectionStatus, { connected: true });

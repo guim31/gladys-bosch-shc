@@ -1,0 +1,32 @@
+[
+  {
+    "@type": "room",
+    "id": "hz_1",
+    "iconId": "icon_room_living_room",
+    "name": "Salon"
+  },
+  {
+    "@type": "room",
+    "id": "hz_2",
+    "iconId": "icon_room_bedroom",
+    "name": "Chambre"
+  },
+  {
+    "@type": "room",
+    "id": "hz_3",
+    "iconId": "icon_room_kitchen",
+    "name": "Cuisine"
+  },
+  {
+    "@type": "room",
+    "id": "hz_4",
+    "iconId": "icon_room_hallway",
+    "name": "Entrée"
+  },
+  {
+    "@type": "room",
+    "id": "hz_5",
+    "iconId": "icon_room_bathroom",
+    "name": "Salle de bain"
+  }
+]

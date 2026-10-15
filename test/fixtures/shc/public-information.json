@@ -1,0 +1,16 @@
+{
+  "apiVersions": ["2.9", "3.2"],
+  "softwareUpdateState": {
+    "@type": "softwareUpdateState",
+    "swUpdateState": "NO_UPDATE_AVAILABLE",
+    "swUpdateLastResult": "UPDATE_SUCCESS",
+    "swUpdateAvailableVersion": "10.24.3420-26105",
+    "swInstalledVersion": "10.24.3420-26105",
+    "swActivationDate": {
+      "@type": "softwareActivationDate",
+      "timeout": 1760000000000
+    },
+    "automaticUpdatesEnabled": true
+  },
+  "shcGeneration": "SHC_2"
+}

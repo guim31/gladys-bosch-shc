@@ -1,0 +1,12 @@
+{
+  "@type": "shcInformation",
+  "version": "10.24.3420-26105",
+  "updateState": "NO_UPDATE_AVAILABLE",
+  "connectivityVersion": [
+    {
+      "@type": "connectivityVersion",
+      "name": "HUE",
+      "version": "1.0"
+    }
+  ]
+}

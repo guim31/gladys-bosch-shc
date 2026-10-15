@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-15
+
 ### Added
 
 - Bosch Smart Home Controller (I and II) over its local API, without any
@@ -38,4 +40,5 @@ the notes of the version's GitHub Release.
 - English, French, German and Spanish, for the configuration, the names, the
   messages and the documentation.
 
-[Unreleased]: https://github.com/guim31/gladys-bosch-shc/commits/main
+[Unreleased]: https://github.com/guim31/gladys-bosch-shc/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/guim31/gladys-bosch-shc/releases/tag/v1.0.1

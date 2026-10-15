@@ -1,6 +1,6 @@
 {
   "name": "gladys-bosch-shc",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Gladys Assistant integration for the Bosch Smart Home Controller (I and II), over its local API.",
   "type": "module",
